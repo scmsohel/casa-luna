@@ -2223,7 +2223,9 @@ class CasaLuna extends HTMLElement {
         const availableHeight = window.innerHeight - Math.max(0, hostTop) - 24;
         if (availableHeight > 0) {
           const availableWidth = this.clientWidth || stage.clientWidth;
-          const fittedWidth = Math.min(availableWidth, availableHeight * VB_W / VB_H);
+          /* Prefer desktop width over height: the full dashboard remains proportional
+             and the page can scroll vertically on shorter screens. */
+          const fittedWidth = Math.min(availableWidth, window.innerWidth * 0.94);
           stage.style.width = `${fittedWidth}px`;
           stage.style.marginInline = 'auto';
         } else {
