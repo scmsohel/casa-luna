@@ -2213,19 +2213,19 @@ class CasaLuna extends HTMLElement {
         <svg style="position:absolute;left:4px;top:4px" width="22" height="22" viewBox="0 0 22 22">${g}</svg></div>`).join('');
 
     /* responsive scaling
-       Desktop: fit the complete 3:2 dashboard into the visible viewport area.
-       Mobile (<=760px): retain the original width-only sizing without layout changes. */
+       Desktop: automatically fit the complete 3:2 dashboard within BOTH the
+       available card width and visible viewport height. Recalculate on resize,
+       scroll and container changes so different monitors fit without manual sizing.
+       Mobile (<=760px): preserve the original width-only sizing and layout. */
     const stage = this._q('.stage'), scaler = this._q('#scaler');
     if (this._ro) this._ro.disconnect();
     const updateStageScale = () => {
       if (window.matchMedia('(min-width: 761px)').matches) {
         const hostTop = this.getBoundingClientRect().top;
-        const availableHeight = window.innerHeight - Math.max(0, hostTop) - 24;
-        if (availableHeight > 0) {
-          const availableWidth = this.clientWidth || stage.clientWidth;
-          /* Prefer desktop width over height: the full dashboard remains proportional
-             and the page can scroll vertically on shorter screens. */
-          const fittedWidth = Math.min(availableWidth, window.innerWidth * 0.94);
+        const availableHeight = Math.max(0, window.innerHeight - Math.max(0, hostTop) - 24);
+        const availableWidth = this.clientWidth || stage.clientWidth;
+        if (availableHeight > 0 && availableWidth > 0) {
+          const fittedWidth = Math.min(availableWidth, availableHeight * VB_W / VB_H);
           stage.style.width = `${fittedWidth}px`;
           stage.style.marginInline = 'auto';
         } else {
@@ -2245,7 +2245,6 @@ class CasaLuna extends HTMLElement {
     window.addEventListener('resize', updateStageScale);
     window.addEventListener('scroll', updateStageScale, true);
     updateStageScale();
-
     /* interactions */
     this._bindEvents();
 
