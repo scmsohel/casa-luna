@@ -879,6 +879,12 @@ class CasaLuna extends HTMLElement {
   disconnectedCallback() {
     clearInterval(this._clock);
     if (this._visHandler) document.removeEventListener('visibilitychange', this._visHandler);
+    if (this._ro) { this._ro.disconnect(); this._ro = null; }
+    if (this._desktopFitHandler) {
+      window.removeEventListener('resize', this._desktopFitHandler);
+      window.removeEventListener('scroll', this._desktopFitHandler, true);
+      this._desktopFitHandler = null;
+    }
     (this._overlays || []).forEach(n => n.remove()); this._overlays = [];
   }
   _onVisibilityChange() {
@@ -2206,13 +2212,37 @@ class CasaLuna extends HTMLElement {
       `<div class="box tap" id="si_${role}" data-icon="${role}" style="left:${SL.icons.x + k * 36}px;top:${SL.icons.y}px;width:30px;height:30px;border-radius:8px;cursor:pointer;color:#5a7a9a">
         <svg style="position:absolute;left:4px;top:4px" width="22" height="22" viewBox="0 0 22 22">${g}</svg></div>`).join('');
 
-    /* responsive scaling */
+    /* responsive scaling
+       Desktop: fit the complete 3:2 dashboard into the visible viewport area.
+       Mobile (<=760px): retain the original width-only sizing without layout changes. */
     const stage = this._q('.stage'), scaler = this._q('#scaler');
-    this._ro = new ResizeObserver(() => {
+    if (this._ro) this._ro.disconnect();
+    const updateStageScale = () => {
+      if (window.matchMedia('(min-width: 761px)').matches) {
+        const hostTop = this.getBoundingClientRect().top;
+        const availableHeight = window.innerHeight - Math.max(0, hostTop) - 24;
+        if (availableHeight > 0) {
+          const availableWidth = this.clientWidth || stage.clientWidth;
+          const fittedWidth = Math.min(availableWidth, availableHeight * VB_W / VB_H);
+          stage.style.width = `${fittedWidth}px`;
+          stage.style.marginInline = 'auto';
+        } else {
+          stage.style.width = '100%';
+          stage.style.marginInline = '';
+        }
+      } else {
+        stage.style.width = '100%';
+        stage.style.marginInline = '';
+      }
       const s = stage.clientWidth / VB_W;
       scaler.style.transform = `scale(${s})`;
-    });
-    this._ro.observe(stage);
+    };
+    this._desktopFitHandler = updateStageScale;
+    this._ro = new ResizeObserver(updateStageScale);
+    this._ro.observe(this);
+    window.addEventListener('resize', updateStageScale);
+    window.addEventListener('scroll', updateStageScale, true);
+    updateStageScale();
 
     /* interactions */
     this._bindEvents();
